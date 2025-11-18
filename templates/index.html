@@ -1,0 +1,413 @@
+if not os.path.exists('templates/index.html'):
+        with open('templates/index.html', 'w') as f:
+            f.write("""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BacDive Strain Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        .card {
+            margin-bottom: 20px;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        .card-header {
+            background-color: #f1f8ff;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        .btn-secondary {
+            background-color: #95a5a6;
+            border-color: #95a5a6;
+        }
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+            border-color: #7f8c8d;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            border-color: #2ecc71;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+            border-color: #27ae60;
+        }
+        .spinner-border {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 5px;
+        }
+        .example-queries {
+            background-color: #f1f8ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .example-query {
+            cursor: pointer;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        .example-query:hover {
+            text-decoration: underline;
+        }
+        #results-section {
+            display: none;
+        }
+        #manual-query-section {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff3cd;
+            border-radius: 5px;
+            border: 1px solid #ffeeba;
+        }
+        .copy-btn {
+            margin-top: 10px;
+        }
+        #error-message {
+            white-space: pre-wrap;
+        }
+        .tab-content {
+            padding-top: 20px;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+        .upload-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .or-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .or-divider span {
+            padding: 0 10px;
+            color: #6c757d;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BacDive Strain Search Interface</h1>
+        
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="query-tab" data-bs-toggle="tab" data-bs-target="#query" type="button" role="tab" aria-controls="query" aria-selected="true">Query Search</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="false">Upload CSV</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Query Tab -->
+            <div class="tab-pane fade show active" id="query" role="tabpanel" aria-labelledby="query-tab">
+                <div class="example-queries">
+                    <h5>Example Queries:</h5>
+                    <div class="example-query" onclick="setExampleQuery('List every strain that belongs to the genus Bacillus and show its full name')">
+                        • List every strain that belongs to the genus Bacillus and show its full name
+                    </div>
+                    <div class="example-query" onclick="setExampleQuery('Give me all strains that were isolated from soil in Germany')">
+                        • Give me all strains that were isolated from soil in Germany
+                    </div>
+                    <div class="example-query" onclick="setExampleQuery('List all strains that assimilate xylose')">
+                        • List all strains that assimilate xylose
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="query" class="form-label">Enter your query in natural language:</label>
+                    <textarea class="form-control" id="query-input" rows="3" placeholder="Example: List all strains that were isolated from soil in Germany"></textarea>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+                    <button class="btn btn-primary" id="submit-btn" onclick="processQuery()">
+                        <span id="submit-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Translate & Execute Query
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+                </div>
+            </div>
+            
+            <!-- Upload Tab -->
+            <div class="tab-pane fade" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                <div class="upload-section">
+                    <h5>Upload CSV File</h5>
+                    <p>Upload a CSV file with strain data to generate statistics and visualizations.</p>
+                    
+                    <form id="upload-form" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csv-file" class="form-label">Select CSV file:</label>
+                            <input class="form-control" type="file" id="csv-file" accept=".csv,.txt">
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                            <button type="button" class="btn btn-primary" onclick="uploadCSV()">
+                                <span id="upload-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                Upload & Analyze
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearUpload()">Clear</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div id="results-section">
+            <div class="card mb-4">
+                <div class="card-header">SPARQL Query</div>
+                <div class="card-body">
+                    <pre id="sparql-query"></pre>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">Results Summary</div>
+                <div class="card-body">
+                    <p id="results-summary"></p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                        <a id="download-csv" class="btn btn-success" href="#" target="_blank">Download CSV</a>
+                        <a id="view-report" class="btn btn-primary" href="#" target="_blank">View Statistics Report</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="manual-query-section" class="alert alert-warning">
+            <h4>SPARQL Endpoint Error</h4>
+            <p>There was an error connecting to the BacDive SPARQL endpoint. You can manually execute the query:</p>
+            <ol>
+                <li>Copy the SPARQL query below</li>
+                <li><a id="manual-endpoint-link" href="#" target="_blank">Open the BacDive SPARQL endpoint</a></li>
+                <li>Paste the query into the query box</li>
+                <li>Click "Run Query" to execute</li>
+            </ol>
+            <pre id="manual-sparql-query"></pre>
+            <button class="btn btn-primary copy-btn" onclick="copyToClipboard('manual-sparql-query')">Copy Query</button>
+        </div>
+        
+        <div id="error-message" class="alert alert-danger d-none"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function setExampleQuery(query) {
+            document.getElementById('query-input').value = query;
+        }
+        
+        function showLoading() {
+            document.getElementById('submit-spinner').classList.remove('d-none');
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('error-message').classList.add('d-none');
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('manual-query-section').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('submit-spinner').classList.add('d-none');
+            document.getElementById('submit-btn').disabled = false;
+        }
+        
+        function showUploadLoading() {
+            document.getElementById('upload-spinner').classList.remove('d-none');
+            document.getElementById('upload-btn').disabled = true;
+            document.getElementById('error-message').classList.add('d-none');
+            document.getElementById('results-section').style.display = 'none';
+        }
+        
+        function hideUploadLoading() {
+            document.getElementById('upload-spinner').classList.add('d-none');
+            document.getElementById('upload-btn').disabled = false;
+        }
+        
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.classList.remove('d-none');
+        }
+        
+        function clearAll() {
+            document.getElementById('query-input').value = '';
+            document.getElementById('error-message').classList.add('d-none');
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('manual-query-section').style.display = 'none';
+        }
+        
+        function clearUpload() {
+            document.getElementById('csv-file').value = '';
+            document.getElementById('error-message').classList.add('d-none');
+            document.getElementById('results-section').style.display = 'none';
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Success feedback
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }, function() {
+                // Error feedback
+                alert('Failed to copy text. Please select and copy manually.');
+            });
+        }
+        
+        function showResults(data) {
+            // Hide query-specific elements if we're in upload mode
+            const queryTab = document.querySelector('#query-tab').classList.contains('active');
+            
+            if (queryTab && data.sparql_query) {
+                document.getElementById('sparql-query').textContent = data.sparql_query;
+                document.querySelector('.card-header:first-of-type').textContent = 'SPARQL Query';
+                document.querySelector('.card:first-of-type').style.display = 'block';
+            } else {
+                document.querySelector('.card:first-of-type').style.display = 'none';
+            }
+            
+            document.getElementById('results-summary').textContent = `Found ${data.row_count} records.`;
+            document.getElementById('download-csv').href = data.csv_url;
+            document.getElementById('view-report').href = data.report_url;
+            document.getElementById('results-section').style.display = 'block';
+        }
+        
+        async function processQuery() {
+            const query = document.getElementById('query-input').value.trim();
+            
+            if (!query) {
+                showError('Please enter a query');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/process_query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Display results
+                    showResults(data);
+                } else {
+                    // Always show the error message
+                    showError(data.error || 'An error occurred while processing your query');
+                    
+                    // Check if we have a query for manual use
+                    if (data.query_for_manual_use && data.sparql_query) {
+                        document.getElementById('manual-sparql-query').textContent = data.sparql_query;
+                        document.getElementById('manual-endpoint-link').href = data.manual_endpoint_url;
+                        document.getElementById('manual-query-section').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function uploadCSV() {
+            const fileInput = document.getElementById('csv-file');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showError('Please select a CSV file to upload');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+                showError('Please select a CSV file (.csv or .txt)');
+                return;
+            }
+            
+            // Show loading spinner
+            document.getElementById('upload-spinner').classList.remove('d-none');
+            document.getElementById('error-message').classList.add('d-none');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/upload_csv', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Display results
+                    showResults(data);
+                } else {
+                    showError(data.error || 'An error occurred while processing your file');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('upload-spinner').classList.add('d-none');
+            }
+        }
+    </script>
+</body>
+</html>""")
